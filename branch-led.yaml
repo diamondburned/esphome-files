@@ -1,0 +1,94 @@
+esphome:
+  name: branch-led
+  friendly_name: Branch LED
+
+# Base
+
+esp32:
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+    version: 5.3.1
+    platform_version: 6.9.0
+
+logger:
+
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret wifi_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  use_address: 10.69.69.125
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# Core
+
+globals:
+  - id: active_profile
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+output:
+  - platform: gpio
+    pin: GPIO18 # D10
+    id: led_button_pin
+
+button:
+  - platform: output
+    name: Cycle Profile Button
+    id: cycle_profile_button
+    output: led_button_pin
+    duration: 75ms
+
+select:
+  - platform: template
+    name: Animation Profile
+    id: animation_profile
+    options:
+      - "Glitter 1"
+      - "Glitter 2"
+      - "Alternate Fast"
+      - "Breathe Slow"
+      - "Flash then Alternate"
+      - "Breathe Fast"
+      - "Alternate Flashing"
+      - "Solid"
+      - "Off"
+    initial_option: "Glitter 1"
+    # No way to hard-reset the LED controller at the moment.
+    # Maybe there's a secret schematic of this thing somewhere...
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            id(led_change_profile)->execute(i);
+
+script:
+  - id: led_change_profile
+    mode: queued
+    parameters:
+      profile: int
+    then:
+      - repeat:
+          count: !lambda |-
+            // Perform true modulo operation instead of remainder (%):
+            return (((profile - id(active_profile)) % 9) + 9) % 9;
+          then:
+            - button.press: cycle_profile_button
+            - delay: 250ms
+      - globals.set:
+          id: active_profile
+          value: !lambda |-
+            return profile;
