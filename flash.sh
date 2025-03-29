@@ -10,9 +10,16 @@ main() {
 		return 1
 	fi
 
-	if ! flash_all; then
-		log "Failed to flash all devices"
-		return 1
+	deviceName="$1"
+	if [[ $deviceName ]]; then
+		flash "${deviceName%.yaml}.yaml"
+	else
+		flash_all
+	fi
+
+	if [[ $? != 0 ]]; then
+		log_error "Failed to flash devices"
+		return $err
 	fi
 }
 
