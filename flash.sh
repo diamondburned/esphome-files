@@ -40,7 +40,7 @@ flash_all() {
 
 flash() {
 	configFile="$1"
-	deviceName="$(basename $config .yaml)"
+	deviceName="$(basename "$configFile" .yaml)"
 
 	if ! deviceAddr="$(dig +short "$deviceName.$GLOBAL_TLD")"; then
 		log_title "Flashing $deviceName"
@@ -50,7 +50,7 @@ flash() {
 		log_title "Flashing $deviceName at $deviceAddr"
 	fi
 
-	if ! esphome run --quiet --no-logs "$config" --device "$deviceAddr"; then
+	if ! esphome run --no-logs "$configFile" --device "$deviceAddr"; then
 		log_error "Failed to flash $deviceName"
 		return 1
 	fi
